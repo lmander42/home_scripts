@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# netcheck - convenience wrapper of ping for internet connection check
+#
+# @author Marion Anderson
+# @date   2017-12-05
+#
+# pings 8.8.8.8 (Google DNS)
+# see netcheck -h for usage
+
+# Setup ---------------------------------------------------------------
+set -o errexit  # exit on any command error
+
+# Displays usage/help dialog
+function helpmsg
+{
+    printf "Convenience wrapper of ping for checking"
+    printf " my Internet connection.\n"
+    printf "Usage: netcheck [num_pings] [-q]\n"
+    printf "\tnum_pings controls how many times to ping 8.8.8.8\n"
+    printf "\t\"-q\" enables quiet mode\n"
+    printf "\nIf no args given, executes \"ping -c5 8.8.8.8\n"
+}
+
+# Input Arg Parsing -------------------------------------------------
+
+# too many args check
+if [ $# -gt 2 ]
+then
+    helpmsg
+    exit 1
+# help dialog check
+elif [ "$1" = "-h" ] || [ "$1" = "--help" ]
+then
+    helpmsg
+    exit 0
+fi
+
+# parsing the input args in arbitrary order
+for i in "$@"
+do
+    if [ "$i" = "-q" ]
+    then
+        loud_flag=false
+    elif [[ $i =~ ^[1-9][0-9]*$ ]]
+    then
+        num_pings=$i  # no quotes; i must be INT
+    else
+        helpmsg
+        exit 1
+    fi
+done
+
+# param expansion for defaults
+: ${num_pings:=5}
+: ${loud_flag:=true}
+
+# arg_str for ping
+arg_str="-c $num_pings"
+if [ $loud_flag = false ]; then arg_str+=" -q"; fi
+arg_str+=" 8.8.8.8"
+
+# Execution ---------------------------------------------------------
+
+exec ping $arg_str
+exit 0
+
