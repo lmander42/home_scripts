@@ -2,33 +2,77 @@
 
 # forbesread - script for reading multi-page list from Forbes
 #
-# Takes the URL of the list without a page number. e.g.:
+# Takes the URL of the Forbes list without the trailing page no. e.g.:
 # http://www3.forbes.com/leadership/the-25-most-underpaid-jobs-in-america/ 
 #
 # @author Marion Anderson
 # @date   2017-12-14
 
 
-# Setup -------------------------------------------------------------
+# Setup =============================================================
 
 set -o errexit
+grep_args="--extended-regexp --word-regexp --only-matching --quiet"
+
+# RegEx of Line with Data
+# -----------------------
+# - any line with a number between 0 and 99 followed by a period & space
+data_regex='>[0-9]{1,2}\.<'
 
 # Help message dialog
+# -------------------
 function helpmsg
 {
     printf "forbesread - A script for quickly reading single-fact,"
-    printf " multi-page Forbes lists.\n\nUSAGE: ./forbesread <url>\n"
+    printf " multi-page Forbes lists.\n\n"
+    printf "USAGE: ./forbesread <url> [numpages]\n\n"
     printf "Example URL: http://www3.forbes.com/leadership/"
-    printf "the-25-most-underpaid-jobs-in-america/\n"
+    printf "the-25-most-underpaid-jobs-in-america/\n\n"
+    printf "numpages:    optional INT in case the number of pages"
+    printf " isn't immediately apparent from the URL\n\n"
+
 }
 
-# RegEx of Line with Data
-# - any line with a number between 0 and 99 followed by a period & space
-data_regex=".*[0-9]{1,2}\. .*"
+# Check if number is integer func
+# -------------------------------
+# ARGS:
+#       1 - a single string to test
+function isint
+{
+    if [ $# -ne 1 ]
+    then
+        echo "ERROR: function isint was given incorrect number of arguments"
+        helpmsg
+        exit 1
+    fi
+
+    local clean_num=$(tr --delete '[:space:]' <<< "$1")  # remove all whitespace
+    local test_num=$(grep $grep_args "[0-9]{1,}" <<< "$clean_num")
+
+    if [ -n "$test_num" ]
+    then
+        return 0
+    else
+        return 1
+    fi
+}
 
 
-# Input Processing ----------------------------------------------------
+# Input Processing ===================================================
 
+# Number of args check
+# --------------------
+if [ $# -lt 1 ] && [ $# -gt 2 ]
+then
+    printf "ERROR: incorrect number of args\n\n"
+    helpmsg
+    exit 1
+fi
+
+echo "args checked"
+
+# Help dialog check
+# -----------------
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]
 then
     helpmsg
@@ -37,23 +81,50 @@ else
     url="$1"
 fi
 
-# Number of Pages in List
-# src: https://linuxconfig.org/how-to-extract-a-number-from-a-string-using-bash-example
-num=$(echo "$url" | grep -o -E "\-[0-9]{1,}\-")  # number will be surrounded by dashes
-num=${num#-}  # remove preceding dash
-num=${num%-}  # remove trailing dash
-num=$(expr $num + 1)
+echo "help checked"
 
-# Make sure num is not NULL
-if ! [ ${num:-false} ]
-then
-    printf "ERROR: URL did not have a recognizable number of pages\n\n"
-    printf "given url: $url\n\n"
-    helpmsg
-    exit 1
+# Finding number of pages in url
+# ------------------------------
+if [ $# -ne 2 ]
+then  # extracting number from URL
+
+    # src: https://linuxconfig.org/how-to-extract-a-number-from-a-string-using-bash-example
+    # be sure to also catch a no-match greo error
+    num=$(grep -oE "\-[0-9]{1,}\-" <<< "$url" || :)  # URL format: "-[num]-"
+    # Only proceed if a valid number was found 
+    if [ -n "$num" ]
+    then
+        num=${num#-}  # remove preceding dash
+        num=${num%-}  # remove trailing dash
+        num=$(expr $num + 1)  # +1 to account for titlepage with no info
+    fi
+
+else  # using given number
+    num=$2
 fi
 
-# Getting List ------------------------------------------------------
+# Check if the number was found/is valid
+# --------------------------------------
+if [ -z "$num" ]
+then
+    # If error, give user 1 chance to enter the correct number
+    # Only give 1 chance because the person using this would probably
+    # rather restart the program than deal with a loop
+    printf "ERROR: URL did not have a recognizable number of pages\n\n"
+    read -p "Please enter the number of pages instead: " num
+    # Catch bad input
+    if ! [ $(grep -wE "[0-9]{1,}" <<< "$num") ]
+    then
+        printf "\n\nERROR: did not recognize an integer number\n\n"
+        printf "given url: $url\n\n"
+        helpmsg
+        exit 1
+    fi
+    num=$(expr $num + 1)  # incrememtn number by 1
+fi
+
+
+# Getting List ======================================================
 
 i=2  # /1/ is the title page; so start at /2/
 while [ $i -le $num ]
@@ -61,7 +132,7 @@ do
     # Retrieving Web Page
     # save relevant line of HTML for post-processing
     # don't forget to redirect curl's debug logs away from STDOUT
-    data_line=$(curl "$url$i/" 2>/dev/null | grep -E "$data_regex")
+    data_line=$(curl "$url$i/" 2>/dev/null | grep --extended-regexp "$data_regex")
 
     # Post-Processing
     line1=${data_line#*strong>}  # remove HTML preceding useful text
