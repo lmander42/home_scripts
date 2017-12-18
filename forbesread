@@ -17,7 +17,8 @@ grep_args="--extended-regexp --word-regexp --only-matching --quiet"
 # RegEx of Line with Data
 # -----------------------
 # - any line with a number between 0 and 99 followed by a period & space
-data_regex='>[0-9]{1,2}\.<'
+# - needs the preceeding ">" because of the HTML bolding Forbes does
+data_regex='>[0-9]{1,2}\.'
 
 # Help message dialog
 # -------------------
@@ -135,11 +136,11 @@ do
     data_line=$(curl "$url$i/" 2>/dev/null | grep --extended-regexp "$data_regex")
 
     # Post-Processing
-    line1=${data_line#*strong>}  # remove HTML preceding useful text
-    line2=${line1%</strong*}     # remove HTML trailing useful text
+    line1=${data_line#*>}  # remove HTML preceding useful text
+    line2=${line1%</*}     # remove HTML trailing useful text
 
     # Output
-    echo "$line2"
+    printf "$line2\n\n"
 
     # Next Loop
     i=$(expr $i + 1)
