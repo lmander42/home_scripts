@@ -131,16 +131,11 @@ i=2  # /1/ is the title page; so start at /2/
 while [ $i -le $num ]
 do
     # Retrieving Web Page
-    # save relevant line of HTML for post-processing
     # don't forget to redirect curl's debug logs away from STDOUT
-    data_line=$(curl "$url$i/" 2>/dev/null | grep --extended-regexp "$data_regex")
-
-    # Post-Processing
-    line1=${data_line#*>}  # remove HTML preceding useful text
-    line2=${line1%</*}     # remove HTML trailing useful text
+    data_line=$(curl "$url$i/" 2>/dev/null | grep -E $data_regex || :)
 
     # Output
-    printf "$line2\n\n"
+    printf "$data_line\n\n"
 
     # Next Loop
     i=$(expr $i + 1)
