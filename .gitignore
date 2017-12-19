@@ -1,0 +1,4 @@
+# exclude matlab files
+*.asm
+*~
+*.m
