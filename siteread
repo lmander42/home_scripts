@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# siteread - script for reading multi-page lists from any website
+#            that follows this format: "$site_page/$page_no"
+#
+# Takes the URL of the website without the trailing page no. e.g.:
+# http://www3.forbes.com/leadership/the-25-most-underpaid-jobs-in-america/ 
+#
+#
+# Usage: siteread <url> <grep_str> [stop_num] [start_num]
+#
+# @author Marion Anderson
+# @date   2017-12-22
+
+
+# Setup =============================================================
+
+set -o errexit
+grep_args="--extended-regexp --word-regexp --only-matching --quiet"
+
+# Help message dialog
+# -------------------
+helpstr="usage: siteread <URL> <grep_str> [num_pages]\n"
+helpstr+="\tURL:       URL of the webpage to read\n"
+helpstr+="\tgrep_str:  Pattern to grep useful text\n"
+helpstr+="\tnum_pages: Number of pages in the given list\n"
+helpstr+="\t           (defaults to infinite loop)\n"
+function helpmsg
+{
+    printf "$helpstr" 1>&2
+}
+
+# Check if number is integer func
+# -------------------------------
+# ARGS:
+#       1 - a single string to test
+function isint
+{
+    if [ $# -ne 1 ]  # args check
+    then
+        echo "Error: isint was given incorrect number of arguments" 1>&2
+        exit 1
+    fi
+
+    local clean_num=$(tr --delete '[:space:]' <<< "$1")  # del whitespace
+
+    if grep $grep_args "[0-9]{1,}" <<< "$clean_num"
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
+# Input Processing ===================================================
+
+# Argument parsing
+# ----------------
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]  # helpmsg request
+then
+    helpmsg
+    exit 0
+elif [ $# -lt 2 ] || [ $# -gt 4 ]  # need 2 to 4 args if not help
+then
+    echo "Error: incorrect number of args" 1>&2
+    helpmsg
+    exit 1
+else
+    url="$1"
+    grep_str="$2"
+    if [ -n $3 ]; then stop_num=$3
+        if [ -n $4 ]; then start_num=$4; fi
+    fi
+fi
+
+echo "$url"
+echo "$grep_str"
+echo "$stop_num"
+echo "$start_num"
+
+# Reading Webpage ===================================================
+
+i=${start_num:-1}
+keep_read=true
+while [ keep_read ]
+do
+    # store matches in data_line in case want to do processing in future
+    data_line=$(curl "$url$i/" 2>/dev/null | grep --extended-regexp "$grep_str")
+    printf "$data_line\n"
+
+    # stop reading logic
+    if [ -n $num_pages ]
+    then
+        if [ $i -ge $stop_num ]; then keep_read=false; fi
+    fi
+
+    i=$(expr $i + 1)
+done
