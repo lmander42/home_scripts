@@ -12,44 +12,62 @@
 set -o errexit  # exit on any command error
 
 # Displays usage/help dialog
+helpstr="usage: netcheck [-n num] [-q]\n"
+helpstr+="\t-n num: how many times to ping 8.8.8.8\n"
+helpstr+="\t        (default num is 5)\n\n"
+helpstr+="\t-q:     enables quiet mode\n" 
+helpstr+="\t        (default is loud)\n"
 function helpmsg
 {
-    printf "Convenience wrapper of ping for checking"
-    printf " my Internet connection.\n"
-    printf "Usage: netcheck [num_pings] [-q]\n"
-    printf "\tnum_pings controls how many times to ping 8.8.8.8\n"
-    printf "\t\"-q\" enables quiet mode\n"
-    printf "\nIf no args given, executes \"ping -c5 8.8.8.8\n"
+    printf "$helpstr" 1>&2
 }
 
 # Input Arg Parsing -------------------------------------------------
 
 # too many args check
-if [ $# -gt 2 ]
+if [ $# -gt 3 ]
 then
+    printf "Error: too many arguments\n" 1>&2
     helpmsg
     exit 1
-# help dialog check
-elif [ "$1" = "-h" ] || [ "$1" = "--help" ]
+fi
+
+# long help cmd check
+if [ $1 = "--help" ]
 then
     helpmsg
     exit 0
 fi
 
-# parsing the input args in arbitrary order
-for i in "$@"
+# optional arg parsing
+OPTIND=1  # reset getopts just in case
+while getopts "h?qn:" opt
 do
-    if [ "$i" = "-q" ]
-    then
+    case "$opt" in
+    h|\?)
+        helpmsg
+        exit 0
+        ;;
+    n)
+        num_pings="$OPTARG"
+        ;;
+    q)
         loud_flag=false
-    elif [[ $i =~ ^[1-9][0-9]*$ ]]
-    then
-        num_pings=$i  # no quotes; i must be INT
-    else
+        ;;
+    *)
+        printf "Error: unrecognized option\n" 1>&2
         helpmsg
         exit 1
-    fi
+    esac
 done
+
+# make sure num_pings is an int
+if ! grep --extended-regexp --quiet "^[1-9][0-9]*$" <<< "$num_pings"
+then
+    printf "Error: num (value: $num_pings) is not an integer\n" 1>&2
+    helpmsg
+    exit 1
+fi
 
 # param expansion for defaults
 : ${num_pings:=5}

@@ -22,16 +22,16 @@ data_regex='>[0-9]{1,2}\.'
 
 # Help message dialog
 # -------------------
+helpstr="forbesread - A script for quickly reading single-fact,"
+helpstr+=" multi-page Forbes lists.\n\n"
+helpstr+="usage: forbesread <url> [numpages]\n"
+helpstr+="\tExample URL:\n\thttp://www3.forbes.com/leadership/"
+helpstr+="the-25-most-underpaid-jobs-in-america/\n\n"
+helpstr+="\tnumpages: (optional) number of pages in the list\n"
+helpstr+="\t          (defaults to attempting to get numpages from URL)\n"
 function helpmsg
 {
-    printf "forbesread - A script for quickly reading single-fact,"
-    printf " multi-page Forbes lists.\n\n"
-    printf "USAGE: ./forbesread <url> [numpages]\n\n"
-    printf "Example URL: http://www3.forbes.com/leadership/"
-    printf "the-25-most-underpaid-jobs-in-america/\n\n"
-    printf "numpages:    optional INT in case the number of pages"
-    printf " isn't immediately apparent from the URL\n\n"
-
+    printf "$helpstr" 1>&2
 }
 
 # Check if number is integer func
@@ -42,15 +42,13 @@ function isint
 {
     if [ $# -ne 1 ]
     then
-        echo "ERROR: function isint was given incorrect number of arguments"
-        helpmsg
+        echo "Error: isint was given incorrect number of arguments" 1>&2
         exit 1
     fi
 
-    local clean_num=$(tr --delete '[:space:]' <<< "$1")  # remove all whitespace
-    local test_num=$(grep $grep_args "[0-9]{1,}" <<< "$clean_num")
+    local clean_num=$(tr --delete '[:space:]' <<< "$1")  # del whitespace
 
-    if [ -n "$test_num" ]
+    if grep $grep_args "[0-9]{1,}" <<< "$clean_num"
     then
         return 0
     else
@@ -63,14 +61,13 @@ function isint
 
 # Number of args check
 # --------------------
-if [ $# -lt 1 ] && [ $# -gt 2 ]
+if [ $# -lt 1 ] || [ $# -gt 2 ]
 then
-    printf "ERROR: incorrect number of args\n\n"
+    printf "Error: incorrect number of args\n" 1>&2
     helpmsg
     exit 1
 fi
 
-echo "args checked"
 
 # Help dialog check
 # -----------------
@@ -81,8 +78,6 @@ then
 else
     url="$1"
 fi
-
-echo "help checked"
 
 # Finding number of pages in url
 # ------------------------------
@@ -111,12 +106,12 @@ then
     # If error, give user 1 chance to enter the correct number
     # Only give 1 chance because the person using this would probably
     # rather restart the program than deal with a loop
-    printf "ERROR: URL did not have a recognizable number of pages\n\n"
+    printf "Error: URL did not have a recognizable number of pages\n\n"
     read -p "Please enter the number of pages instead: " num
     # Catch bad input
     if ! [ $(grep -wE "[0-9]{1,}" <<< "$num") ]
     then
-        printf "\n\nERROR: did not recognize an integer number\n\n"
+        printf "\n\nError: did not recognize an integer number\n\n"
         printf "given url: $url\n\n"
         helpmsg
         exit 1
