@@ -33,7 +33,7 @@ then
 fi
 
 # long help cmd check
-if [ $1 = "--help" ]
+if [ "$1" = "--help" ]
 then
     helpmsg
     exit 0
@@ -61,6 +61,9 @@ do
     esac
 done
 
+# default ping value
+: ${num_pings:=5}
+
 # make sure num_pings is an int
 if ! grep --extended-regexp --quiet "^[1-9][0-9]*$" <<< "$num_pings"
 then
@@ -70,7 +73,6 @@ then
 fi
 
 # param expansion for defaults
-: ${num_pings:=5}
 : ${loud_flag:=true}
 
 # arg_str for ping
