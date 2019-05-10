@@ -3,7 +3,7 @@
 # forbesread - script for reading multi-page list from Forbes
 #
 # Takes the URL of the Forbes list without the trailing page no. e.g.:
-# http://www3.forbes.com/leadership/the-25-most-underpaid-jobs-in-america/ 
+# https://www3.forbes.com/leadership/the-25-most-underpaid-jobs-in-america/ 
 #
 # @author Marion Anderson
 # @date   2017-12-14
@@ -25,7 +25,7 @@ data_regex='>[0-9]{1,2}\.'
 helpstr="forbesread - A script for quickly reading single-fact,"
 helpstr+=" multi-page Forbes lists.\n\n"
 helpstr+="usage: forbesread <url> [numpages]\n"
-helpstr+="\tExample URL:\n\thttp://www3.forbes.com/leadership/"
+helpstr+="\tExample URL:\n\thttps://www3.forbes.com/leadership/"
 helpstr+="the-25-most-underpaid-jobs-in-america/\n\n"
 helpstr+="\tnumpages: (optional) number of pages in the list\n"
 helpstr+="\t          (defaults to attempting to get numpages from URL)\n"
@@ -79,13 +79,17 @@ else
     url="$1"
 fi
 
+# check for trailing '/'
+# ----------------------
+# add trailing slash for curl-ing below
+
 # Finding number of pages in url
 # ------------------------------
 if [ $# -ne 2 ]
 then  # extracting number from URL
 
     # src: https://linuxconfig.org/how-to-extract-a-number-from-a-string-using-bash-example
-    # be sure to also catch a no-match greo error
+    # be sure to also catch a no-match grep error
     num=$(grep -oE "\-[0-9]{1,}\-" <<< "$url" || :)  # URL format: "-[num]-"
     # Only proceed if a valid number was found 
     if [ -n "$num" ]
@@ -122,18 +126,27 @@ fi
 
 # Getting List ======================================================
 
+echo ""  # add space before printout
+blank=" "  # for substitution
 i=2  # /1/ is the title page; so start at /2/
 while [ $i -le $num ]
 do
     # Retrieving Web Page
     # don't forget to redirect curl's debug logs away from STDOUT
     data_line=$(curl "$url$i/" 2>/dev/null | grep -E $data_regex || :)
+    
+    # Cleaning html flags
+    # https://stackoverflow.com/questions/13210880/replace-one-substring-for-another-string-in-shell-script
+    data_line=${data_line#<p><strong>}
+    data_line=${data_line%%</em></strong></p>}
+    data_line=${data_line/<em>/}
 
     # Output
-    printf "$data_line\n\n"
+    printf "$data_line\n"
 
     # Next Loop
     i=$(expr $i + 1)
 done
+echo ""  # buffer line
 
 exit 0
