@@ -9,7 +9,7 @@ Check the header comments to see what each script does in more detail.
 Currently running Ubuntu 17.
 
 ## Author
- Marion Anderson - [lmander42](https://github.com/lmander42)
+ Marion Anderson - [lowdrant](https://github.com/lowdrant)
  
 ## License
  All files are under the MIT License
