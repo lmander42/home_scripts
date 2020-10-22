@@ -11,14 +11,27 @@ help()
     exit 0
 }
 
-# Syncing & Help Dialog
+# HELP DIALOG
 if [ $# -gt 0 ]; then help; fi
-# sync homework
-dir="/home/lowdrant/Documents/"
-tgt="lowdrant@mx.local:$dir"
-rsync -avhuz -e ssh "$dir" "$tgt"
-rsync -avhuz -e ssh "$tgt" "$dir"
-# sync cad
-#tgt="lowdrant@mx.local:/home/lowdrant/Documents/cad/"
-#rsync -avhuz -e ssh "$HOME/Documents/cad/" "$tgt"
-#rsync -avhuz -e ssh "$tgt" "$HOME/Documents/cad/"
+
+# SYNC
+# directories to sync
+basedir=/home/lowdrant
+dirs=(Documents Pictures research)
+
+# choose host
+if [ $(hostname) = 'marion-tower' ]
+then
+    tgt="lowdrant@mx.local"
+else
+    tgt="lowdrant@marion-tower.local"
+fi
+
+for dir in ${dirs[@]}
+do
+    curdir="$basedir/$dir/"  # trailing '/' indicates directory
+    curtgt="$tgt:$basedir/$dir/"
+    echo $curdir $curtgt
+    rsync -avhuz -e ssh "$curdir" "$curtgt"
+    rsync -avhuz -e ssh "$curtgt" "$curdir"
+done
