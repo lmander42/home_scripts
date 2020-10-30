@@ -17,7 +17,7 @@ if [ $# -gt 0 ]; then help; fi
 # SYNC
 # directories to sync
 basedir=/home/lowdrant
-dirs=(Documents Pictures research)
+dirs=(research Documents Pictures)  # in order of priority
 
 # choose host
 if [ $(hostname) = 'marion-tower' ]
