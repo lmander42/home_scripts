@@ -3,6 +3,7 @@
 #
 # @author Marion Anderson
 set -o pipefail -o nounset
+trap "exit" INT  # respond to ctrl-c
 
 help()
 {
